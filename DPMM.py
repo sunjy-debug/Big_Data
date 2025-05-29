@@ -12,9 +12,9 @@ class DPGMM:
         # advantage: simple model, conjugate prior for efficient calculation
         
         self.X = torch.from_numpy(X).float().to(device)
-        self.N, self.D = X.shape
+        self.N, self.D = self.X.shape
         self.alpha = torch.tensor(alpha, device = device, dtype=self.X.dtype)
-        self.nu0, self.lambda0, self.mu0, self.kappa0 = nu0.to(device), lambda0.to(device), mu0.to(device), kappa0.to(device)
+        self.nu0, self.lambda0, self.mu0, self.kappa0 = nu0, lambda0.to(device), mu0.to(device), kappa0
         self.device = device
 
         self.labels = torch.arange(self.N, device = self.device, dtype = torch.long) # the cluster labels of each data point
