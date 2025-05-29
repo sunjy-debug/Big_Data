@@ -28,7 +28,7 @@ def main():
     X = pca.fit_transform(X)
     N, D = X.shape
 
-    model  = DPGMM(X, alpha = args.alpha, nu0 = D + 2, lambda0 = np.eye(D, D), mu0 = np.zeros(D), kappa0 = 1)
+    model  = DPGMM(X, alpha = args.alpha, nu0 = D + 2, lambda0 = np.eye(D, D), mu0 = np.zeros(D), kappa0 = 1, device = args.device)
     # nu_0 = D + 2 ensures that the expecation of covariance exists
     labels, clusters = model._reassign_data_to_cluster(iterations = args.iters)
 
