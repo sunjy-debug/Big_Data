@@ -13,7 +13,7 @@ class DPGMM:
         
         self.X = torch.from_numpy(X).float().to(device)
         self.N, self.D = X.shape
-        self.alpha = alpha.to(device)
+        self.alpha = torch.tensor(alpha, device = device, dtype=self.X.dtype)
         self.nu0, self.lambda0, self.mu0, self.kappa0 = nu0.to(device), lambda0.to(device), mu0.to(device), kappa0.to(device)
         self.device = device
 
