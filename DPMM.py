@@ -3,7 +3,7 @@ from torch.distributions import Chi2, MultivariateNormal, StudentT
 import torch.nn.functional as F
 
 
-class DPGMM_sigma_unknown:
+class DPGMM:
     def __init__(self, X, alpha, nu0, lambda0, mu0, kappa0, device):
         # X: (N, D) data follow gaussian distribution (mu, sigma), mu, sigma both unknown
         # alpha: concentration parameter
