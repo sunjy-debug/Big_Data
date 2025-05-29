@@ -38,6 +38,7 @@ def main():
     plt.xlabel("x")
     plt.title(f"DPGMM Clustering with Normal-inv-Whishart (K={len(set(labels))})")
     plt.show()
+    plt.savefig("DPGMM Clustering with Normal-inv-Whishart.png")
 
 if __name__ == "__main__":
     main()
