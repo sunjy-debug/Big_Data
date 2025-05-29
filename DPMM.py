@@ -62,7 +62,7 @@ class DPGMM:
         X = self.X[idx]
         n, _ = X.shape
         X_mean = X.mean(axis = 0) if n > 0 else torch.zeros(self.D, device = self.device, dtype = torch.float)
-        X_var = torch.cov(X.T) if n > 1  else self.lambda0 / (self.nu0 - self.D- 1) # we use the expectation of prior in small clusters
+        X_var = torch.cov(X.T) if n > 1  else torch.zeros((self.D, self.D), device=self.device, dtype = torch.float)
         nun = self.nu0 + n
         kappan = self.kappa0 + n
         mun = (self.mu0 * self.kappa0 + X_mean * n) / kappan
