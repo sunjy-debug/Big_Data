@@ -10,6 +10,7 @@ def main():
         description="Run DPGMM with normal-inverse-whishart prior distribution"
     )
     parser.add_argument("--device", type = str, default = "cuda", help = "Device CUDA/CPU")
+    parser.add_argument("--pcacomponents", type = int, default = 600, help = "Number of components for PCA")
     parser.add_argument("--alpha", type = float, default = 1.0, help = "DP concentration parameter")
     parser.add_argument("--iters", type = int, default = 1000, help="Number of Gibbs sampling iterations")
     parser.add_argument("--seed", type = int, default = 0, help = "Random seed")
@@ -23,7 +24,7 @@ def main():
     X = scaler.fit_transform(X)    
 
     # due to computation efficiency, we consider dimension reduction with PCA
-    pca = PCA(n_components = 325)
+    pca = PCA(n_components = args.pcacomponents)
     X = pca.fit_transform(X)
     N, D = X.shape
 
