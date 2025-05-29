@@ -1,6 +1,5 @@
 import torch
 from torch.distributions import Chi2, MultivariateNormal, StudentT
-import torch.nn.functional as F
 
 
 class DPGMM:
@@ -91,24 +90,22 @@ class DPGMM:
                     del self.thetas[cluster_i]
 
                 # calculating the resampling probability of k(i)
+                log_probs = [] # the probability k(i) belongs to each cluster
                 cluster_idxs = torch.tensor(list(self.clusters.keys()), device = self.device, dtype = torch.long) # the clusters
-                K = len(cluster_idxs)
-                mus = torch.stack([self.thetas[int(idx)][0] for idx in cluster_idxs])
-                sigmas = torch.stack([self.thetas[int(idx)][1] for idx in cluster_idxs])
-                ns = torch.tensor([len(self.clusters[int(idx)]) for idx in cluster_idxs], device = self.device, dtype = torch.float)
-
-                # log_prob, the probability k(i) belongs to each cluster
-                log_prob = torch.log(ns) + MultivariateNormal(mus, sigmas).log_prob(self.X[i].expand(K, D)) # the probability of existing clusters
-                
+                for idx, value in self.clusters.items():
+                    mu, sigma = self.thetas[idx]
+                    n = torch.tensor(len(value), device = self.device, dtype = torch.long)
+                    log_probs.append(torch.log(n) + MultivariateNormal(mu, sigma).log_prob(self.X[i])) # the probability of existing clusters
                 df_new = self.nu0 - D + 1
                 mu_new = self.mu0
                 sigma_new = (self.kappa0 + 1) / (self.kappa0 * df_new) * self.lambda0
-                torch.cat([log_prob, torch.log(self.alpha) + self.multivariatet_logpdf(self.X[i], mu_new, sigma_new, df_new).unsqueeze(0)], 0) # the probability of a new cluster
+                log_probs.append(torch.log(self.alpha) + self.multivariatet_logpdf(self.X[i], mu_new, sigma_new, df_new)) # the probability of a new cluster
+                log_probs = torch.stack(log_probs, dim = 0)
                 # the intergral of gaussian(x_i| mu_k, sigma_k) * gaussian(mu_k| mu_0, sigma / kappa_0) * inv-wishart(sigma_k| nu_0, lambda_0)
                 # is a multivariate-t distribution, with df = nu_0 - d + 1, loc = mu_0, scale = (kappa_0 + 1) / (kappa_0 * (nu_0 - d + 1)) * lambda_0
 
                 # standarization - softmax
-                prob = F.softmax(log_prob, 0)
+                prob = torch.softmax(log_probs, dim = 0)
 
                 # resample k(i)
                 choice = torch.multinomial(prob, 1).item()
