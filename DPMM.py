@@ -11,7 +11,7 @@ class DPGMM:
         # assume G_0 normal-inverse-wishart distribution for mu parameter (mu0, sigma0)
         # advantage: simple model, conjugate prior for efficient calculation
         
-        self.X = X.to(device)
+        self.X = torch.from_numpy(X).float().to(device)
         self.N, self.D = X.shape
         self.alpha = alpha.to(device)
         self.nu0, self.lambda0, self.mu0, self.kappa0 = nu0.to(device), lambda0.to(device), mu0.to(device), kappa0.to(device)
