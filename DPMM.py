@@ -34,8 +34,8 @@ class DPGMM:
         for i in range(p):
             chi2 = Chi2(df - i).sample().to(device = self.device, dtype = scale.dtype)
             A[i, i] = torch.sqrt(chi2)
-            if i + 1 < p:
-                A[i, i + 1: ] = torch.randn(p - i - 1, device = self.device, dtype = scale.dtype)
+            if i > 0:
+                A[i, :i] = torch.randn(i, device = self.device, dtype = scale.dtype)
 
         L = torch.linalg.cholesky(torch.linalg.inv(scale))
         W = L @ A @ A.T @ L.T
