@@ -38,7 +38,7 @@ class DPGMM:
         # initialize theta
         self.thetas = {}
         for idx in self.clusters.keys():
-            self.thetas[idx] = self._resample_cluster_parameter(idx)
+            self.thetas[idx] = self._sample_cluster_parameter(idx)
     
     def invwishart(self, df: int, scale: torch.Tensor) -> torch.Tensor:
         p = scale.shape[0]
@@ -70,7 +70,7 @@ class DPGMM:
         matrix = eigvec @ (eigval[..., None] * eigvec.transpose(-1, -2))
         return matrix
     
-    def _resample_cluster_parameter(self, idx):
+    def _sample_cluster_parameter(self, idx):
         # normal-inverse-wishart conjugate prior, gaussian likelihood
         n = self.stats[idx]['n']
         X_mean = self.stats[idx]['s'] / self.stats[idx]['n'] if n > 0 else torch.zeros(self.D, device = self.device)
@@ -95,14 +95,15 @@ class DPGMM:
         return {'mu': mu, 'sigma': sigma, 'L': L, "invL": invL, 'logdet': logdet}
 
     
-    def _reassign_data_to_cluster(self, iterations = 1000):
+    def sample(self, iterations = 1000):
         D = self.D
         for itr in range(iterations):
             print(f"{itr + 1}-th iteration has beginned.\n")
             
             cluster_changed = set() # we monitor the changed clusters and resample the parameters for the changed clusters
-            
+           
             for i in range(self.N):
+                # reassign the data point
                 # remove i from its cluster
                 cluster_i = int(self.labels[i].item()) # the cluster data point i used to belong to
                 self.clusters[cluster_i].remove(i) # remove the data point from the cluster
@@ -145,7 +146,7 @@ class DPGMM:
                         's':  self.X[i],
                         'ss': torch.ger(self.X[i], self.X[i])
                         }
-                    self.thetas[new_idx] = self._resample_cluster_parameter(new_idx)
+                    self.thetas[new_idx] = self._sample_cluster_parameter(new_idx)
                     self.labels[i] = torch.tensor(new_idx, device = self.device, dtype = torch.long)
                 else:
                     idx = cluster_idxs[choice]
@@ -153,14 +154,14 @@ class DPGMM:
                     self.stats[idx]['n'] += 1
                     self.stats[idx]['s'] += self.X[i]
                     self.stats[idx]['ss'] += torch.ger(self.X[i], self.X[i])
-                    self.thetas[idx] = self._resample_cluster_parameter(idx)
+                    self.thetas[idx] = self._sample_cluster_parameter(idx)
                     self.labels[i] = torch.tensor(idx, device = self.device, dtype = torch.long)            
 
             # resample cluster parameter for changed clusters
             for idx in cluster_changed:
                 if idx in self.clusters: 
                     if len(self.clusters[idx]) > 0:
-                        self.thetas[idx] = self._resample_cluster_parameter(idx)
+                        self.thetas[idx] = self._sample_cluster_parameter(idx)
                     else:
                         del self.clusters[idx]
                         del self.thetas[idx]
