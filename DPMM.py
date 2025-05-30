@@ -1,5 +1,6 @@
 import torch
-from torch.distributions import Chi2, MultivariateNormal, StudentT
+from torch.distributions import Chi2
+import math
 
 
 class DPGMM:
@@ -40,11 +41,16 @@ class DPGMM:
         W = L @ A @ A.T @ L.T
         sigma = torch.linalg.inv(W)
         return sigma
+
+    def multivariatenorm_logpdf(self, x: torch.Tensor, mu: torch.Tensor, invL: torch.tensor, logdet: torch.Tensor) -> torch.Tensor:
+        D    = x.numel()
+        z = torch.mv(invL, x - mu)
+        return -0.5 * (D * math.log(2.0 * math.pi) + logdet + torch.dot(z, z))
     
     def multivariatet_logpdf(self, x: torch.Tensor, mu: torch.Tensor, sigma: torch.Tensor, df: float) -> torch.Tensor:
         L = torch.linalg.cholesky(sigma)
         z = torch.linalg.solve_triangular(L, (x - mu).unsqueeze(-1), upper = False).squeeze(-1)
-        t = StudentT(df, torch.zeros((), device = self.device, dtype = torch.long), torch.ones((), device = self.device, dtype = torch.long))
+        t = StudentT(df, torch.tensor(0., device = self.device, dtype = x.dtype), torch.tensor(1., device = self.device, dtype = x.dtype))
         logpdf_z = t.log_prob(z).sum(-1)
         logdet = 2.0 * torch.log(torch.diag(L)).sum()
         return logpdf_z - 0.5 * logdet
@@ -60,8 +66,8 @@ class DPGMM:
         # normal-inverse-wishart conjugate prior, gaussian likelihood
         X = self.X[idx]
         n, _ = X.shape
-        X_mean = X.mean(axis = 0) if n > 0 else torch.zeros(self.D, device = self.device, dtype = torch.float)
-        X_var = torch.cov(X.T) if n > 1  else torch.zeros((self.D, self.D), device=self.device, dtype = torch.float)
+        X_mean = X.mean(axis = 0) if n > 0 else torch.zeros(self.D, device = self.device, dtype = self.X.dtype)
+        X_var = (X - X_mean).T @ (X - X_mean) / (n - 1) if n > 1  else torch.zeros((self.D, self.D), device=self.device, dtype = self.X.dtype)
         nun = self.nu0 + n
         kappan = self.kappa0 + n
         mun = (self.mu0 * self.kappa0 + X_mean * n) / kappan
@@ -74,8 +80,11 @@ class DPGMM:
         sigma_mu = sigma / kappan
         sigma_mu = self._transform_psd(sigma_mu)
         mu = MultivariateNormal(mun, sigma_mu).sample()
+        L = torch.linalg.cholesky(sigma)
+        invL = torch.inverse(L)
+        logdet = 2.0 * torch.log(torch.diag(L)).sum()
 
-        return mu, sigma
+        return {'mu': mu, 'sigma': sigma, 'L': L, "invL": invL, 'logdet': logdet}
 
     
     def _reassign_data_to_cluster(self, iterations = 1000):
@@ -93,9 +102,9 @@ class DPGMM:
                 # log_prob, the probability k(i) belongs to each cluster
                 log_probs = []
                 for idx, value in self.clusters.items():
-                    mu, sigma = self.thetas[idx]
-                    n = torch.tensor(len(value), device=self.device, dtype=self.X.dtype)
-                    log_probs.append(torch.log(n) + MultivariateNormal(mu, sigma).log_prob(self.X[i])) # the probability of existing clusters
+                    mu, sigma, L, invL, logdet = self.thetas[idx]['mu'], self.thetas[idx]['sigma'], self.thetas[idx]['L'], self.thetas[idx]['invL'], self.thetas[idx]['logdet']
+                    n = torch.tensor(len(value), device = self.device, dtype = self.X.dtype)
+                    log_probs.append(torch.log(n) + self.multivariatenorm_logpdf(self.X[i], mu, invL, logdet)) # the probability of existing clusters
                 df_new = self.nu0 - D + 1
                 mu_new = self.mu0
                 sigma_new = (self.kappa0 + 1) / (self.kappa0 * df_new) * self.lambda0
