@@ -140,8 +140,4 @@ class DPGMM:
                         del self.clusters[idx]
                         del self.thetas[idx]
 
-            # in order to monitor the process, here we print the procedure
-            if (itr + 1) % 50 == 0:
-                print(f"Iteration {itr + 1: 4d}: Number of clusters = {len(self.clusters)}\n")
-
         return self.labels, self.clusters
