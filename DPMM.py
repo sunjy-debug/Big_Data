@@ -138,9 +138,11 @@ class DPGMM:
                 if choice == len(cluster_idxs): # since the index begins with 0
                     new_idx = max(self.clusters.keys(), default = -1) + 1
                     self.clusters[new_idx] = [i]
-                    self.stats[new_idx]['n'] = 1
-                    self.stats[new_idx]['s'] = self.X[i]
-                    self.stats[new_idx]['ss'] = torch.ger(self.X[i], self.X[i])
+                    self.stats[new_idx] = {
+                        'n':  1,
+                        's':  self.X[i],
+                        'ss': torch.ger(self.X[i], self.X[i])
+                        }
                     self.thetas[new_idx] = self._resample_cluster_parameter(new_idx)
                     self.labels[i] = torch.tensor(new_idx, device = self.device, dtype = torch.long)
                 else:
