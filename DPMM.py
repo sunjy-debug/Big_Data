@@ -1,6 +1,8 @@
 import torch
 from torch.distributions import Chi2, MultivariateNormal, StudentT
 import math
+from pathlib import Path
+import numpy as np
 
 
 class DPGMM:
@@ -169,10 +171,10 @@ class DPGMM:
         out_dir = Path("outputs")
         out_dir.mkdir(exist_ok = True)
         labels_path = out_dir / "dpgmm_labels.csv"
-        np.savetxt(labels_path, np.column_stack([np.arange(len(labels)), labels.cpu().numpy()]), fmt='%d', delimiter=',', header='index,label', comments='')
+        np.savetxt(labels_path, np.column_stack([np.arange(len(self.labels)), self.labels.cpu().numpy()]), fmt='%d', delimiter=',', header='index,label', comments='')
         print(f"DPGMM labels written to {labels_path}.\n")
 
         #print the cluster summary
-        cluster_sizes = {idx: len(value) for idx, value in clusters.items()}
+        cluster_sizes = {idx: len(value) for idx, value in self.clusters.items()}
         for idx, size in sorted(cluster_sizes.items()):
             print(f"Cluster {idx}: {size} points")
