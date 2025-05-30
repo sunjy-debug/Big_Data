@@ -133,11 +133,11 @@ class DPGMM:
 
             # resample cluster parameter for changed clusters
             for idx in cluster_changed:
-                if len(self.clusters[cluster_id]) > 0:
-                    self.thetas[cluster_id] = self._resample_cluster_parameter(self.clusters[cluster_id])
+                if len(self.clusters[idx]) > 0:
+                    self.thetas[idx] = self._resample_cluster_parameter(self.clusters[idx])
                 else:
-                    del self.clusters[cluster_id]
-                    del self.thetas[cluster_id]
+                    del self.clusters[idx]
+                    del self.thetas[idx]
 
             # in order to monitor the process, here we print the procedure
             if (itr + 1) % 50 == 0:
