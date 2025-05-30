@@ -23,11 +23,6 @@ class DPGMM:
         self.labels   = torch.zeros(self.N, device = self.device, dtype = torch.int) # the cluster labels of each data point
         self.clusters = {0: list(range(self.N))} # the data points belong to each cluster, we initialize that all data points belong to the same cluster
 
-        # initialize theta
-        self.thetas = {}
-        for idx, value in self.clusters.items():
-            self.thetas[idx] = self._resample_cluster_parameter(value)
-
         # here we want to speed up the calculation of the matrix covariance
         # we instead of calculating the matrix covariance after one data point is removed, calculate three sufficient statistics
         self.stats = {}
@@ -37,6 +32,11 @@ class DPGMM:
             s = X.sum(dim = 0) # sum
             ss = X.T @ X # sum of squares
             self.stats[idx] = {'n': n, "s": s, "ss": ss}
+            
+        # initialize theta
+        self.thetas = {}
+        for idx, value in self.clusters.items():
+            self.thetas[idx] = self._resample_cluster_parameter(value)
     
     def invwishart(self, df: int, scale: torch.Tensor) -> torch.Tensor:
         p = scale.shape[0]
