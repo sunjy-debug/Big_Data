@@ -109,17 +109,18 @@ class DPGMM:
 
                 # resample k(i)
                 choice = torch.multinomial(prob, 1).item()
+                cluster_idxs = list(self.clusters.keys())
                 # if the choice belongs to a new cluster
-                if choice == len(self.clusters.keys()) - 1: # since the index begins with 0
+                if choice == len(cluster_idxs): # since the index begins with 0
                     new_idx = max(self.clusters.keys(), default = -1) + 1
                     self.clusters[new_idx] = [i]
                     self.thetas[new_idx] = self._resample_cluster_parameter(self.clusters[new_idx])
-                    self.labels[i] = torch.tensor(new_idx, device = self.device, dtype = torch.float)
+                    self.labels[i] = torch.tensor(new_idx, device = self.device, dtype = torch.long)
                 else:
                     idx = cluster_idxs[choice]
                     self.clusters[idx].append(i)
                     self.thetas[idx] = self._resample_cluster_parameter(self.clusters[idx])
-                    self.labels[i] = torch.tensor(idx, device = self.device, dtype = torch.float)            
+                    self.labels[i] = torch.tensor(idx, device = self.device, dtype = torch.long)            
 
             for idx, value in self.clusters.items():
                 self.thetas[idx] = self._resample_cluster_parameter(value)
