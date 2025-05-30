@@ -20,7 +20,7 @@ class DPGMM:
         self.kappa0 = kappa0
         self.device = device
 
-        self.labels   = torch.zeros(self.N, device = self.device, dtype = torch.long) # the cluster labels of each data point
+        self.labels   = torch.zeros(self.N, device = self.device, dtype = torch.int) # the cluster labels of each data point
         self.clusters = {0: list(range(self.N))} # the data points belong to each cluster, we initialize that all data points belong to the same cluster
 
         # initialize theta
