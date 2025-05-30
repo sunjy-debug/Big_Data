@@ -19,8 +19,8 @@ class DPGMM:
         self.kappa0 = kappa0
         self.device = device
 
-        self.labels = torch.arange(self.N, device = self.device, dtype = torch.long) # the cluster labels of each data point
-        self.clusters = {i:[i] for i in range(self.N)} # the data points belong to each cluster
+        self.labels   = torch.zeros(self.N, device = self.device, dtype = torch.long) # the cluster labels of each data point
+        self.clusters = {0: list(range(self.N))} # the data points belong to each cluster, we initialize that all data points belong to the same cluster
 
         # initialize theta
         self.thetas = {}
@@ -43,7 +43,7 @@ class DPGMM:
     
     def multivariatet_logpdf(self, x: torch.Tensor, mu: torch.Tensor, sigma: torch.Tensor, df: float) -> torch.Tensor:
         L = torch.linalg.cholesky(sigma)
-        z = torch.linalg.solve_triangular(L, (x - mu).T, upper = False).squeeze(-1)
+        z = torch.linalg.solve_triangular(L, (x - mu).unsqueeze(-1), upper = False).squeeze(-1)
         t = StudentT(df, torch.zeros((), device = self.device, dtype = torch.long), torch.ones((), device = self.device, dtype = torch.long))
         logpdf_z = t.log_prob(z).sum(-1)
         logdet = 2.0 * torch.log(torch.diag(L)).sum()
@@ -90,12 +90,13 @@ class DPGMM:
                     del self.thetas[cluster_i]
 
                 # calculating the resampling probability of k(i)
-                log_probs = [] # the probability k(i) belongs to each cluster
+                # log_prob, the probability k(i) belongs to each cluster
                 cluster_idxs = torch.tensor(list(self.clusters.keys()), device = self.device, dtype = torch.long) # the clusters
-                for idx, value in self.clusters.items():
-                    mu, sigma = self.thetas[idx]
-                    n = torch.tensor(len(value), device = self.device, dtype = torch.long)
-                    log_probs.append(torch.log(n) + MultivariateNormal(mu, sigma).log_prob(self.X[i])) # the probability of existing clusters
+                K = len(cluster_idxs)
+                mus = torch.stack([self.thetas[int(idx)][0] for idx in cluster_idxs])
+                sigmas = torch.stack([self.thetas[int(idx)][1] for idx in cluster_idxs])
+                ns = torch.tensor([len(self.clusters[int(idx)]) for idx in cluster_idxs], device = self.device, dtype = torch.float)
+                log_prob = torch.log(ns) + MultivariateNormal(mus, sigmas).log_prob(self.X[i].expand(K, D)) # the probability of existing clusters
                 df_new = self.nu0 - D + 1
                 mu_new = self.mu0
                 sigma_new = (self.kappa0 + 1) / (self.kappa0 * df_new) * self.lambda0
