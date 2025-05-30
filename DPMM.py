@@ -110,7 +110,7 @@ class DPGMM:
                 # resample k(i)
                 choice = torch.multinomial(prob, 1).item()
                 # if the choice belongs to a new cluster
-                if choice == K: # since the index begins with 0
+                if choice == len(self.clusters.keys()) - 1: # since the index begins with 0
                     new_idx = max(self.clusters.keys(), default = -1) + 1
                     self.clusters[new_idx] = [i]
                     self.thetas[new_idx] = self._resample_cluster_parameter(self.clusters[new_idx])
