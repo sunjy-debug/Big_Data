@@ -96,6 +96,8 @@ class DPGMM:
     def _reassign_data_to_cluster(self, iterations = 1000):
         D = self.D
         for itr in range(iterations):
+            print(f"{itr + 1}-th iteration has beginned.\n")
+            
             cluster_changed = set() # we monitor the changed clusters and resample the parameters for the changed clusters
             
             for i in range(self.N):
@@ -159,7 +161,7 @@ class DPGMM:
                         del self.clusters[idx]
                         del self.thetas[idx]
 
-            print(f"{itr}-th iteration has been completed.\n")
+            print(f"{itr + 1}-th iteration has completed.\n")
 
         # save the labels
         out_dir = Path("outputs")
