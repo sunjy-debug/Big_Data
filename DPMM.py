@@ -159,4 +159,16 @@ class DPGMM:
                         del self.clusters[idx]
                         del self.thetas[idx]
 
-        return self.labels, self.clusters
+            print(f"{itr}-th iteration has been completed.\n")
+
+        # save the labels
+        out_dir = Path("outputs")
+        out_dir.mkdir(exist_ok = True)
+        labels_path = out_dir / "dpgmm_labels.csv"
+        np.savetxt(labels_path, np.column_stack([np.arange(len(labels)), labels.cpu().numpy()]), fmt='%d', delimiter=',', header='index,label', comments='')
+        print(f"DPGMM labels written to {labels_path}.\n")
+
+        #print the cluster summary
+        cluster_sizes = {idx: len(value) for idx, value in clusters.items()}
+        for idx, size in sorted(cluster_sizes.items()):
+            print(f"Cluster {idx}: {size} points")
