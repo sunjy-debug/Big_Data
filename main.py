@@ -13,7 +13,7 @@ def main():
     parser.add_argument("--model", type = str, default = "DPGMM", help = "Model")
     parser.add_argument("--pcacomponents", type = int, default = 325, help = "Number of components for PCA")
     parser.add_argument("--alpha", type = float, default = 1.0, help = "DP concentration parameter, when alpha = 1.0, the expecation of number of cluster = lnN")
-    parser.add_argument("--iters", type = int, default = 500, help="Number of Gibbs sampling iterations")
+    parser.add_argument("--iters", type = int, default = 10, help="Number of Gibbs sampling iterations")
     parser.add_argument("--seed", type = int, default = 0, help = "Random seed")
     args = parser.parse_args()
 
