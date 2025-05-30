@@ -30,13 +30,9 @@ class DPGMM:
     
     def invwishart(self, df: int, scale: torch.Tensor) -> torch.Tensor:
         p = scale.shape[0]
-        A = torch.zeros((p, p), device = self.device, dtype = scale.dtype)
-        for i in range(p):
-            chi2 = Chi2(df - i).sample().to(device = self.device, dtype = scale.dtype)
-            A[i, i] = torch.sqrt(chi2)
-            if i > 0:
-                A[i, :i] = torch.randn(i, device = self.device, dtype = scale.dtype)
-
+        chi2 = torch.sqrt(Chi2(df - torch.arange(p)).sample().to(device = self.device, dtype = scale.dtype))
+        A = torch.diag(chi2)
+        A += torch.triu(torch.randn(p, p, device = self.device, dtype = scale.dtype), diagonal=1)
         L = torch.linalg.cholesky(torch.linalg.inv(scale))
         W = L @ A @ A.T @ L.T
         sigma = torch.linalg.inv(W)
@@ -66,8 +62,8 @@ class DPGMM:
         # normal-inverse-wishart conjugate prior, gaussian likelihood
         X = self.X[idx]
         n, _ = X.shape
-        X_mean = X.mean(axis = 0) if n > 0 else torch.zeros(self.D, device = self.device, dtype = self.X.dtype)
-        X_var = (X - X_mean).T @ (X - X_mean) / (n - 1) if n > 1  else torch.zeros((self.D, self.D), device=self.device, dtype = self.X.dtype)
+        X_mean = X.mean(axis = 0) if n > 0 else torch.zeros_like(self.mu0)
+        X_var = torch.cov(X.T) if n > 1  else torch.zeros_like(self.lambda0)
         nun = self.nu0 + n
         kappan = self.kappa0 + n
         mun = (self.mu0 * self.kappa0 + X_mean * n) / kappan
@@ -81,7 +77,7 @@ class DPGMM:
         sigma_mu = self._transform_psd(sigma_mu)
         mu = MultivariateNormal(mun, sigma_mu).sample()
         L = torch.linalg.cholesky(sigma)
-        invL = torch.inverse(L)
+        invL = torch.cholesky_inverse(L)
         logdet = 2.0 * torch.log(torch.diag(L)).sum()
 
         return {'mu': mu, 'sigma': sigma, 'L': L, "invL": invL, 'logdet': logdet}
@@ -90,10 +86,13 @@ class DPGMM:
     def _reassign_data_to_cluster(self, iterations = 1000):
         D = self.D
         for itr in range(iterations):
+            cluster_changed = set() # we monitor the changed clusters and resample the parameters for the changed clusters
+            
             for i in range(self.N):
                 # remove i from its cluster
                 cluster_i = int(self.labels[i].item()) # the cluster data point i used to belong to
                 self.clusters[cluster_i].remove(i)
+                cluster_changed.add(cluster_i)
                 if len(self.clusters[cluster_i]) == 0:
                     del self.clusters[cluster_i] # if the cluster data point i used to belong to is empty, we delete it
                     del self.thetas[cluster_i]
@@ -102,7 +101,8 @@ class DPGMM:
                 # log_prob, the probability k(i) belongs to each cluster
                 log_probs = []
                 for idx, value in self.clusters.items():
-                    mu, sigma, L, invL, logdet = self.thetas[idx]['mu'], self.thetas[idx]['sigma'], self.thetas[idx]['L'], self.thetas[idx]['invL'], self.thetas[idx]['logdet']
+                    theta = self.thetas[idx]
+                    mu, sigma, L, invL, logdet = theta['mu'], theta['sigma'], theta['L'], theta['invL'], theta['logdet']
                     n = torch.tensor(len(value), device = self.device, dtype = self.X.dtype)
                     log_probs.append(torch.log(n) + self.multivariatenorm_logpdf(self.X[i], mu, invL, logdet)) # the probability of existing clusters
                 df_new = self.nu0 - D + 1
@@ -131,8 +131,13 @@ class DPGMM:
                     self.thetas[idx] = self._resample_cluster_parameter(self.clusters[idx])
                     self.labels[i] = torch.tensor(idx, device = self.device, dtype = torch.long)            
 
-            for idx, value in self.clusters.items():
-                self.thetas[idx] = self._resample_cluster_parameter(value)
+            # resample cluster parameter for changed clusters
+            for idx in cluster_changed:
+                if len(self.clusters[cluster_id]) > 0:
+                    self.thetas[cluster_id] = self._resample_cluster_parameter(self.clusters[cluster_id])
+                else:
+                    del self.clusters[cluster_id]
+                    del self.thetas[cluster_id]
 
             # in order to monitor the process, here we print the procedure
             if (itr + 1) % 50 == 0:
