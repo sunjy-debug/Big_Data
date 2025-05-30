@@ -34,12 +34,13 @@ def main():
     labels = labels.cpu().numpy()
 
     # visualization
-    plt.scatter(X[:, 0], X[:, 1], c = labels, s = 10, cmap = "tab10")
-    plt.yticks([])
-    plt.xlabel("x")
-    plt.title(f"DPGMM Clustering with Normal-inv-Whishart (K={len(set(labels))})")
-    plt.show()
-    plt.savefig("DPGMM Clustering with Normal-inv-Whishart.png")
+    if args.pcacomponents == 2:
+        plt.scatter(X[:, 0], X[:, 1], c = labels, s = 10, cmap = "tab10")
+        plt.yticks([])
+        plt.xlabel("x")
+        plt.title(f"DPGMM Clustering with Normal-inv-Whishart (K={len(set(labels))})")
+        plt.show()
+        plt.savefig("DPGMM Clustering with Normal-inv-Whishart.png")
 
 if __name__ == "__main__":
     main()
