@@ -27,6 +27,16 @@ class DPGMM:
         self.thetas = {}
         for idx, value in self.clusters.items():
             self.thetas[idx] = self._resample_cluster_parameter(value)
+
+        # here we want to speed up the calculation of the matrix covariance
+        # we instead of calculating the matrix covariance after one data point is removed, calculate three sufficient statistics
+        self.stats = {}
+        for idx, value in self.clusters.items():
+            X = self.X[value]
+            n = len(X)
+            s = X.sum(dim = 0) # sum
+            ss = X.T @ X # sum of squares
+            self.stats[idx] = {'n': n, "s": s, "ss": ss}
     
     def invwishart(self, df: int, scale: torch.Tensor) -> torch.Tensor:
         p = scale.shape[0]
@@ -60,10 +70,10 @@ class DPGMM:
     
     def _resample_cluster_parameter(self, idx):
         # normal-inverse-wishart conjugate prior, gaussian likelihood
-        X = self.X[idx]
-        n, _ = X.shape
-        X_mean = X.mean(axis = 0) if n > 0 else torch.zeros_like(self.mu0)
-        X_var = torch.cov(X.T) if n > 1  else torch.zeros_like(self.lambda0)
+        n = self.stats[idx]['n']
+        X_mean = self.stats[idx]['s'] / self.stats[idx]['n'] if n > 0 else torch.zeros(self.D, device = self.device)
+        X_var = (self.stats[idx]['ss'] - n * torch.ger(self.stats[idx]['s'] / self.stats[idx]['n'], self.stats[idx]['s'] / self.stats[idx]['n'])) \
+            if n > 1  else torch.zeros((self.D, self.D), device = self.device)
         nun = self.nu0 + n
         kappan = self.kappa0 + n
         mun = (self.mu0 * self.kappa0 + X_mean * n) / kappan
@@ -91,10 +101,13 @@ class DPGMM:
             for i in range(self.N):
                 # remove i from its cluster
                 cluster_i = int(self.labels[i].item()) # the cluster data point i used to belong to
-                self.clusters[cluster_i].remove(i)
-                cluster_changed.add(cluster_i)
-                if len(self.clusters[cluster_i]) == 0:
+                self.clusters[cluster_i].remove(i) # remove the data point from the cluster
+                self.stats[cluster_i]['n'] -= 1 # remove the sufficient statistics from the cluster parameters
+                self.stats[cluster_i]['s'] -= self.X[i]
+                self.stats[cluster_i]['ss'] -= torch.ger(self.X[i], self.X[i])
+                if self.stats[cluster_i]['n'] == 0:
                     del self.clusters[cluster_i] # if the cluster data point i used to belong to is empty, we delete it
+                    del self.stats[cluster_i]
                     del self.thetas[cluster_i]
 
                 # calculating the resampling probability of k(i)
@@ -123,11 +136,17 @@ class DPGMM:
                 if choice == len(cluster_idxs): # since the index begins with 0
                     new_idx = max(self.clusters.keys(), default = -1) + 1
                     self.clusters[new_idx] = [i]
+                    self.stats[new_idx]['n'] = 1
+                    self.stats[new_idx]['s'] = self.X[i]
+                    self.stats[new_idx]['ss'] = torch.ger(self.X[i], self.X[i])
                     self.thetas[new_idx] = self._resample_cluster_parameter(self.clusters[new_idx])
                     self.labels[i] = torch.tensor(new_idx, device = self.device, dtype = torch.long)
                 else:
                     idx = cluster_idxs[choice]
                     self.clusters[idx].append(i)
+                    self.stats[idx]['n'] += 1
+                    self.stats[idx]['s'] += self.X[i]
+                    self.stats[idx]['ss'] += torch.ger(self.X[i], self.X[i])
                     self.thetas[idx] = self._resample_cluster_parameter(self.clusters[idx])
                     self.labels[i] = torch.tensor(idx, device = self.device, dtype = torch.long)            
 
