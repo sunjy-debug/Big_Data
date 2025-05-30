@@ -91,12 +91,11 @@ class DPGMM:
 
                 # calculating the resampling probability of k(i)
                 # log_prob, the probability k(i) belongs to each cluster
-                cluster_idxs = torch.tensor(list(self.clusters.keys()), device = self.device, dtype = torch.long) # the clusters
-                K = len(cluster_idxs)
-                mus = torch.stack([self.thetas[int(idx)][0] for idx in cluster_idxs])
-                sigmas = torch.stack([self.thetas[int(idx)][1] for idx in cluster_idxs])
-                ns = torch.tensor([len(self.clusters[int(idx)]) for idx in cluster_idxs], device = self.device, dtype = torch.float)
-                log_prob = torch.log(ns) + MultivariateNormal(mus, sigmas).log_prob(self.X[i].expand(K, D)) # the probability of existing clusters
+                log_probs = []
+                for idx, value in self.clusters.items():
+                    mu, sigma = self.thetas[idx]
+                    n = torch.tensor(len(value), device=self.device, dtype=self.X.dtype)
+                    log_probs.append(torch.log(n) + MultivariateNormal(mu, sigma).log_prob(self.X[i])) # the probability of existing clusters
                 df_new = self.nu0 - D + 1
                 mu_new = self.mu0
                 sigma_new = (self.kappa0 + 1) / (self.kappa0 * df_new) * self.lambda0
