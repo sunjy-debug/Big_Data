@@ -34,7 +34,7 @@ def main():
     labels = labels.cpu().numpy()
 
     # visualization
-    plt.scatter(X, np.zeros_like(X), c = labels, s = 10, cmap = "tab10")
+    plt.scatter(X[:, 0], X[:, 1], c = labels, s = 10, cmap = "tab10")
     plt.yticks([])
     plt.xlabel("x")
     plt.title(f"DPGMM Clustering with Normal-inv-Whishart (K={len(set(labels))})")
