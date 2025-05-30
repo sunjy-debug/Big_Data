@@ -33,7 +33,7 @@ def main():
     labels, clusters = model._reassign_data_to_cluster(iterations = args.iters)
 
     # visualization
-    plt.scatter(X, np.zeros_like(X), c = labels, s = 10, cmap = "tab10")
+    plt.scatter(X.cpu().numpy(), np.zeros_like(X.cpu().numpy()), c = labels.cpu().numpy(), s = 10, cmap = "tab10")
     plt.yticks([])
     plt.xlabel("x")
     plt.title(f"DPGMM Clustering with Normal-inv-Whishart (K={len(set(labels))})")
