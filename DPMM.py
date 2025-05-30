@@ -1,5 +1,5 @@
 import torch
-from torch.distributions import Chi2
+from torch.distributions import Chi2, MultivariateNormal
 import math
 
 
