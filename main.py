@@ -33,7 +33,7 @@ def main():
     if args.model == "DPGMM":
         model  = DPGMM(X, alpha = args.alpha, nu0 = D + 2, lambda0 = np.eye(D, D), mu0 = np.zeros(D), kappa0 = 1, device = args.device)
         # nu_0 = D + 2 ensures that the expecation of covariance exists
-        model._reassign_data_to_cluster(iterations = args.iters)
+        model.sample(iterations = args.iters)
 
 
 if __name__ == "__main__":
