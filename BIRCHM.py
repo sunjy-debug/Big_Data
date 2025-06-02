@@ -208,6 +208,7 @@ class BIRCH:
             new_root.entries  = [_summary(left_child.entries), _summary(right_child.entries)]
             new_root.children = [left_child, right_child]
             self.root = new_root
+            return
         # if the node has parent nodes, we replace the the children nodes of it with new children nodes
         del parent.entries[parent_idx]
         del parent.children[parent_idx]
