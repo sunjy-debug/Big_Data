@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Tuple
 from pathlib import Path
 
 class CFEntry:
@@ -71,7 +72,7 @@ class CFNode:
         if not self.is_leaf:
             self.children.append(child_node) # record the child_node pointer if non-leaf node
 
-    def node_split(self) -> ('CFNode', 'CFNode'):
+    def node_split(self) -> Tuple[CFNode, CFNode]:
         # if the number of entries reaches max_entries, we need to split the node
         entries_copy = [entry.copy() for entry, _ in list(zip(self.entries, self.children))]
         children_copy = [children.copy() for _, children in list(zip(self.entries, self.children))]
@@ -128,7 +129,7 @@ class CFNode:
             
 
 class BIRCH:
-    def __init__(self, threshold = 10, B: int = 2000, L = 2000):
+    def __init__(self, threshold: float, B: int, L: int):
         # threshold: the max_radius threshold of the CFEntry; if after the new node addition the radius > threshold, we cannot merge the node
         # B: the max_entries of non-leaf node
         # L: the max_entries of leaf node
@@ -211,7 +212,7 @@ class BIRCH:
         if len(parent.entries) > parent.max_entries:
             self._node_split_upward(parent)
 
-    def _parent_search(self, current: CFNode, target: CFNode, parent: CFNode = None) -> (CFNode, int):
+    def _parent_search(self, current: CFNode, target: CFNode, parent: CFNode = None) -> Tuple[CFNode, int]:
         if current.is_leaf:
             return (None, -1)
         

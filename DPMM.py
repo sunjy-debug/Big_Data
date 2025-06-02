@@ -95,7 +95,7 @@ class DPGMM:
         return {'mu': mu, 'sigma': sigma, 'L': L, "invL": invL, 'logdet': logdet}
 
     
-    def sample(self, iterations = 1000):
+    def sample(self, iterations):
         D = self.D
         for itr in range(iterations):
             print(f"{itr + 1}-th iteration has beginned.\n")
