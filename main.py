@@ -40,6 +40,8 @@ def main():
         model.sample(iterations = args.iters)
     if args.model == "BIRCH":
         model = BIRCH(threshold = args.threshold, B = args.B, L = args.L)
+        for x in X:
+            model.data_insertion(x)
         model.sample(X)
 
 if __name__ == "__main__":
