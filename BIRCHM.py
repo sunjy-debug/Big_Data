@@ -94,6 +94,18 @@ class CFNode:
                     max_dist = dist
                     data_a, data_b = i, j
         
+        # if n < 2, we do not split
+        if n < 2:
+            left = CFNode(self.threshold, self.max_entries, self.is_leaf)
+            left.entries = [entry.copy() for entry in self.entries]
+            
+            if not self.is_leaf:
+                left.children = list(self.children)
+            else:
+                left.next_leaf = self.next_leaf
+            right = CFNode(self.threshold, self.max_entries, self.is_leaf)
+            return left, right
+
         # initialize the two new left and right nodes
         left = CFNode(self.threshold, self.max_entries, self.is_leaf)
         right = CFNode(self.threshold, self.max_entries, self.is_leaf)
