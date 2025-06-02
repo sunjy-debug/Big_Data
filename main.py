@@ -42,6 +42,7 @@ def main():
         model = BIRCH(threshold = args.threshold, B = args.B, L = args.L)
         for x in X:
             model.data_insertion(x)
+        print(f"The data has been inserted.\n")
         model.sample(X)
 
 if __name__ == "__main__":
