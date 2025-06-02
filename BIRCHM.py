@@ -247,13 +247,13 @@ class BIRCH:
             if len(leaf.entries) == 0:
                 labels[i] = -1
                 continue
-            
+
             min_idx = leaf.closet_entry_search(x)
             min_entry = leaf.entries[min_idx]
             labels[i] = cluster_idxs[min_entry]
 
         # save the labels
-        out_dir = Path("outputs").panret
+        out_dir = Path("outputs").parent
         out_dir.mkdir(exist_ok = True, parent = True)
         labels_path = out_dir / "birch_labels.csv"
         np.savetxt(labels_path, np.column_stack([np.arange(len(labels)), labels]), fmt='%d', delimiter=',', header='index,label', comments='')
