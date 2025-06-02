@@ -44,6 +44,8 @@ def main():
         for x in X:
             model.data_insertion(x)
         print(f"The data has been inserted.\n")
+        # limit the number of clusters
+        model.global_clustering(n_clusters = args.nclusters)
         model.sample(X)
 
 if __name__ == "__main__":

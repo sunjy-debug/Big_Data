@@ -266,23 +266,18 @@ class BIRCH:
         km.fit(centroids, sample_weight = weights)
         labels = km.labels_
 
-        # mapping the leaf node labels to global lables
+        # mapping the leaf node labels to global labels
         self.clusterlabel = {id(entry): labels[i] for i, entry in enumerate(leaf_entries)}
     
     def sample(self, data: np.ndarray):
         N, D = data.shape
         labels = np.empty(N)
 
-        # limit the number of clusters
-        self.global_clustering(n_clusters = self.nclusters)
-
         for i, x in enumerate(data):
             leaf = self._leaf_node_search(self.root, x)
-
             if not leaf.entries:
                 labels[i] = -1
                 continue
-
             min_idx = leaf.closest_entry_search(x)
             labels[i] = self.clusterlabel[id(leaf.entries[min_idx])] 
 
