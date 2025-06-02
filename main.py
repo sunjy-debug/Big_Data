@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import argparse
 from pathlib import Path
 from DPMM import DPGMM
+from BIRCHM import BIRCH
 
 def main():
     parser = argparse.ArgumentParser(
@@ -34,6 +35,11 @@ def main():
         model  = DPGMM(X, alpha = args.alpha, nu0 = D + 2, lambda0 = np.eye(D, D), mu0 = np.zeros(D), kappa0 = 1, device = args.device)
         # nu_0 = D + 2 ensures that the expecation of covariance exists
         model.sample(iterations = args.iters)
+    if args.model == "BIRCH":
+        model = BIRCH()
+        for x in X:
+            model.data_insertion(x)
+        model.sample(X)
 
 
 if __name__ == "__main__":
