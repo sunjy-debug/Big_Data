@@ -72,7 +72,7 @@ class CFNode:
         if not self.is_leaf:
             self.children.append(child_node) # record the child_node pointer if non-leaf node
 
-    def node_split(self) -> Tuple[CFNode, CFNode]:
+    def node_split(self) -> Tuple['CFNode', 'CFNode']:
         # if the number of entries reaches max_entries, we need to split the node
         entries_copy = [entry.copy() for entry, _ in list(zip(self.entries, self.children))]
         children_copy = [children.copy() for _, children in list(zip(self.entries, self.children))]
