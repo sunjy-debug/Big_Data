@@ -243,6 +243,11 @@ class BIRCH:
         for i in range(N):
             x = data[i]
             leaf = self._leaf_node_search(self.root, x)
+
+            if len(leaf.entries) == 0:
+                labels[i] = -1
+                continue
+            
             min_idx = leaf.closet_entry_search(x)
             min_entry = leaf.entries[min_idx]
             labels[i] = cluster_idxs[min_entry]
