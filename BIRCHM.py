@@ -52,7 +52,7 @@ class CFNode:
 
         self.next_leaf = None # the pointer to the next leaf node
 
-    def closet_entry_search(self, data: np.ndarray) -> int:
+    def closest_entry_search(self, data: np.ndarray) -> int:
         # return the index of the CFEntry of the closest data point to the current data point
         min_dist = float('inf') # the initial distance
         min_idx = -1 # the initial index
@@ -63,27 +63,22 @@ class CFNode:
                 min_dist = dist
                 min_idx = idx
         return min_idx
-    
-    def new_entry_addition(self, entry: CFEntry, child_node: 'CFNode' = None):
-        # insert a new CFEntry to the current node
-        # if the number of entries < max_entries, insert it and append child_node in nodes if non-leaf node
-        # otherwise, split the node
-        self.entries.append(entry)
-        if not self.is_leaf:
-            self.children.append(child_node) # record the child_node pointer if non-leaf node
 
     def node_split(self) -> Tuple['CFNode', 'CFNode']:
         # if the number of entries reaches max_entries, we need to split the node
-        entries_copy = [entry.copy() for entry, _ in list(zip(self.entries, self.children))]
-        children_copy = [children.copy() for _, children in list(zip(self.entries, self.children))]
-
-        # clear out the node
-        self.entries = []
-        self.children = []
-
-        # find the two most distant CFEntries
+        entries_copy = [entry.copy() for entry in self.entries]
+        children_copy = list(self.children) if not self.is_leaf else []
         n = len(entries_copy)
-        max_dist = -1
+        if n < 2:
+            left  = CFNode(self.threshold, self.max_entries, self.is_leaf)
+            right = CFNode(self.threshold, self.max_entries, self.is_leaf)
+            left.entries = entries_copy
+            if not self.is_leaf:
+                left.children = children_copy
+            return left, right
+        
+        # find the two most distant CFEntries
+        max_dist = -1.0
         data_a, data_b = 0, 1
         for i in range(n):
             for j in range(i + 1, n):
@@ -93,18 +88,6 @@ class CFNode:
                 if dist > max_dist:
                     max_dist = dist
                     data_a, data_b = i, j
-        
-        # if n < 2, we do not split
-        if n < 2:
-            left = CFNode(self.threshold, self.max_entries, self.is_leaf)
-            left.entries = [entry.copy() for entry in self.entries]
-            
-            if not self.is_leaf:
-                left.children = list(self.children)
-            else:
-                left.next_leaf = self.next_leaf
-            right = CFNode(self.threshold, self.max_entries, self.is_leaf)
-            return left, right
 
         # initialize the two new left and right nodes
         left = CFNode(self.threshold, self.max_entries, self.is_leaf)
@@ -112,6 +95,9 @@ class CFNode:
         # put the two data points in the left and right nodes
         left.entries.append(entries_copy[data_a])
         right.entries.append(entries_copy[data_b])
+        if not self.is_leaf:
+            left.children.append(children_copy[data_a])
+            right.children.append(children_copy[data_b])
 
         # assign the rest of the data points based on the distance with the centroid
         for idx in range(n):
@@ -124,19 +110,22 @@ class CFNode:
                 left.entries.append(ctr_idx)
             else:
                 right.entries.append(ctr_idx)
-        # if it is non-leaf node, assign the childeren of the node
-        if not self.is_leaf:
-            self.children = []
-
-            for idx in range(n):
-                ctr_idx = entries_copy[idx]
-                dist_a = np.linalg.norm(ctr_idx.centroid() - entries_copy[data_a].centroid())
-                dist_b = np.linalg.norm(ctr_idx.centroid() - entries_copy[data_b].centroid())
+            # if it is non-leaf node, assign the childeren of the node
+            if not self.is_leaf:
                 if dist_a < dist_b:
                     left.children.append(children_copy[idx])
                 else:
                     right.children.append(children_copy[idx])
         
+        if not left.entries:
+            left.entries.append(right.entries.pop())
+            if not self.is_leaf:
+                left.children.append(right.children.pop())
+        if not right.entries:
+            right.entries.append(left.entries.pop())
+            if not self.is_leaf:
+                right.children.append(left.children.pop())
+    
         return left, right
             
 
@@ -164,7 +153,7 @@ class BIRCH:
         if node.is_leaf:
             return node
         
-        idx = node.closet_entry_search(data)
+        idx = node.closest_entry_search(data)
         return self._leaf_node_search(node.children[idx], data)
     
     def _data_to_leaf_node_insertion(self, leaf: CFNode, data: np.ndarray):
@@ -174,7 +163,7 @@ class BIRCH:
             leaf.entries.append(CFEntry(data))
         else:
             # find the nearest node
-            min_idx = leaf.closet_entry_search(data)
+            min_idx = leaf.closest_entry_search(data)
             min_entry = leaf.entries[min_idx]
 
             # merge
@@ -191,40 +180,46 @@ class BIRCH:
                 self._node_split_upward(leaf)
         
     def _node_split_upward(self, node: CFNode):
+        def _summary(entries):
+            entry = entries[0].copy()
+            for e in entries[1:]:
+                entry.CFEntry_merge(e)
+            return entry
+        
         # if the node exceed the capacity, we need to split the leaf node and merge upward
         left_child, right_child = node.node_split()
+        if self.leaf is node:
+            self.leaf = left_child
+        if node.is_leaf:
+            if self.leaf is not node:
+                prev = self.leaf
+                while prev and prev.next_leaf is not node:
+                    prev = prev.next_leaf
+                if prev:
+                    prev.next_leaf = left_child
+            left_child.next_leaf = right_child
+            right_child.next_leaf = node.next_leaf
+
         parent, parent_idx = self._parent_search(self.root, node)
 
         # when the node is root node, we create a new root node
         if parent is None:
             new_root = CFNode(self.threshold, self.B, is_leaf = False)
-            new_root.entries = [left_child.entries[0].copy(), right_child.entries[0].copy()]
+            new_root.entries  = [_summary(left_child.entries), _summary(right_child.entries)]
             new_root.children = [left_child, right_child]
             self.root = new_root
-
-            # if the left and right nodes are leaf nodes, we update the leaf list
-            if left_child.is_leaf and right_child.is_leaf:
-                left_child.next_leaf = right_child
-                right_child.next_leaf = node.next_leaf
-                node.next_leaf = None
-            return
-    
         # if the node has parent nodes, we replace the the children nodes of it with new children nodes
         del parent.entries[parent_idx]
         del parent.children[parent_idx]
+        parent.entries[parent_idx:parent_idx] = [_summary(left_child.entries), _summary(right_child.entries)]
+        parent.children[parent_idx:parent_idx] = [left_child, right_child]
 
-        parent.entries.insert(parent_idx + 1, right_child.entries[0].copy())
-        parent.children.insert(parent_idx + 1, right_child)
-
-        if left_child.is_leaf and right_child.is_leaf:
-            left_child.next_leaf = right_child
-            right_child.next_leaf = node.next_leaf
-            node.next_leaf = None
-        
         if len(parent.entries) > parent.max_entries:
-            self._node_split_upward(parent)
+            self._split_upward(parent)
 
     def _parent_search(self, current: CFNode, target: CFNode, parent: CFNode = None) -> Tuple[CFNode, int]:
+        if current is target:
+            return (parent, -1) if parent else (None, -1)
         if current.is_leaf:
             return (None, -1)
         
@@ -248,24 +243,22 @@ class BIRCH:
     
     def sample(self, data: np.ndarray):
         leaf_CFentries = self.leaf_CFEntry()
-        cluster_idxs = {entry: idx for idx, entry in enumerate(leaf_CFentries)}
+        cluster_idxs = {id(entry): idx for idx, entry in enumerate(leaf_CFentries)}
 
         N, D = data.shape
         labels = np.empty(N)
-        for i in range(N):
-            x = data[i]
+        for i, x in enumerate(data):
             leaf = self._leaf_node_search(self.root, x)
 
-            if len(leaf.entries) == 0:
+            if not leaf.entries:
                 labels[i] = -1
                 continue
 
-            min_idx = leaf.closet_entry_search(x)
-            min_entry = leaf.entries[min_idx]
-            labels[i] = cluster_idxs[min_entry]
+            min_idx = leaf.closest_entry_search(x)
+            labels[i] = cluster_idxs[id(leaf.entries[min_idx])]
 
         # save the labels
-        out_dir = Path("outputs").parent
+        out_dir = Path("outputs")
         out_dir.mkdir(exist_ok = True, parents = True)
         labels_path = out_dir / "birch_labels.csv"
         np.savetxt(labels_path, np.column_stack([np.arange(len(labels)), labels]), fmt='%d', delimiter=',', header='index,label', comments='')
