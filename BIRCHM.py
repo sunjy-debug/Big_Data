@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.cluster import KMeans
 from typing import Tuple
 from pathlib import Path
 
@@ -130,13 +131,15 @@ class CFNode:
             
 
 class BIRCH:
-    def __init__(self, threshold: float, B: int, L: int):
+    def __init__(self, threshold: float, B: int, L: int, nclusters: int, seed: float):
         # threshold: the max_radius threshold of the CFEntry; if after the new node addition the radius > threshold, we cannot merge the node
         # B: the max_entries of non-leaf node
         # L: the max_entries of leaf node
         self.threshold = threshold
         self.B = B
         self.L = L
+        self.nclusters = nclusters
+        self.seed = seed
 
         # initialize the root node as the leaf node
         self.root = CFNode(threshold, L, is_leaf = True)
@@ -242,12 +245,37 @@ class BIRCH:
             node = node.next_leaf
         return leaves
     
-    def sample(self, data: np.ndarray):
-        leaf_CFentries = self.leaf_CFEntry()
-        cluster_idxs = {id(entry): idx for idx, entry in enumerate(leaf_CFentries)}
+    def global_clustering(self):
+        # cluster all the centroids in each clustering with Kmeans
+        # collect CFEntry of the leaf node
+        leaf_entries = []
+        def _collect(node):
+            if node.is_leaf:
+                leaf_entries.extend(node.entries)
+            else:
+                for c in node.children:
+                    _collect(c)
+        _collect(self.root)
 
+        # calculate the CFEntries
+        centroids = np.vstack([entry.LS / entry.N for entry in leaf_entries])
+        weights   = np.array([entry.N for entry in leaf_entries])
+
+        # Kmeans calculate the weight
+        km = KMeans(n_clusters = self.nclusters, n_init="auto", random_state = self.seed)
+        km.fit(centroids, sample_weight = weights)
+        labels = km.labels_
+
+        # mapping the leaf node labels to global lables
+        self.clusterlabel = {id(entry): labels[i] for i, entry in enumerate(leaf_entries)}
+    
+    def sample(self, data: np.ndarray):
         N, D = data.shape
         labels = np.empty(N)
+
+        # limit the number of clusters
+        self.global_clustering(n_clusters = self.nclusters)
+
         for i, x in enumerate(data):
             leaf = self._leaf_node_search(self.root, x)
 
@@ -256,7 +284,7 @@ class BIRCH:
                 continue
 
             min_idx = leaf.closest_entry_search(x)
-            labels[i] = cluster_idxs[id(leaf.entries[min_idx])]
+            labels[i] = self.clusterlabel[id(leaf.entries[min_idx])] 
 
         # save the labels
         out_dir = Path("outputs")

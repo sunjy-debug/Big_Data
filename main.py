@@ -17,9 +17,10 @@ def main():
     parser.add_argument("--alpha", type = float, default = 1.0, help = "DP concentration parameter, when alpha = 1.0, the expecation of number of cluster = lnN")
     parser.add_argument("--iters", type = int, default = 10, help="Number of Gibbs sampling iterations")
     parser.add_argument("--seed", type = int, default = 0, help = "Random seed")
-    parser.add_argument("--threshold", type = float, default= 1.0, help = "Radius Threshold for Clusters")
+    parser.add_argument("--threshold", type = float, default= 20, help = "Radius Threshold for Clusters")
     parser.add_argument("--B", type = int, default = 2000, help = "Node Threshold for Non-leaf Node")
     parser.add_argument("--L", type = int, default = 2000, help = "Node Threshold for Leaf Node")
+    parser.add_argument("--nclusters", type = int, default = 50, help = "Number of Clustering")
     args = parser.parse_args()
 
     rng = np.random.RandomState(args.seed)
@@ -29,17 +30,16 @@ def main():
     scaler = StandardScaler()
     X = scaler.fit_transform(X)    
 
-    # due to computation efficiency, we consider dimension reduction with PCA
-    pca = PCA(n_components = args.pcacomponents)
-    X = pca.fit_transform(X)
-    N, D = X.shape
-
     if args.model == "DPGMM":
+        # due to computation efficiency, we consider dimension reduction with PCA
+        pca = PCA(n_components = args.pcacomponents)
+        X = pca.fit_transform(X)
+        N, D = X.shape
         model  = DPGMM(X, alpha = args.alpha, nu0 = D + 2, lambda0 = np.eye(D, D), mu0 = np.zeros(D), kappa0 = 1, device = args.device)
         # nu_0 = D + 2 ensures that the expecation of covariance exists
         model.sample(iterations = args.iters)
     if args.model == "BIRCH":
-        model = BIRCH(threshold = args.threshold, B = args.B, L = args.L)
+        model = BIRCH(threshold = args.threshold, B = args.B, L = args.L, nclusters = args.nclusters, seed = args.seed)
         for x in X:
             model.data_insertion(x)
         print(f"The data has been inserted.\n")
