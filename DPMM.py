@@ -74,7 +74,7 @@ class DPGMM:
         # normal-inverse-wishart conjugate prior, gaussian likelihood
         n = self.stats[idx]['n']
         X_mean = self.stats[idx]['s'] / self.stats[idx]['n'] if n > 0 else torch.zeros(self.D, device = self.device)
-        X_var = (self.stats[idx]['ss'] - n * torch.ger(self.stats[idx]['s'] / self.stats[idx]['n'], self.stats[idx]['s'] / self.stats[idx]['n'])) \
+        X_var = (self.stats[idx]['ss'] - n * torch.outer(self.stats[idx]['s'] / self.stats[idx]['n'], self.stats[idx]['s'] / self.stats[idx]['n'])) \
             if n > 1  else torch.zeros((self.D, self.D), device = self.device)
         nun = self.nu0 + n
         kappan = self.kappa0 + n
@@ -109,11 +109,12 @@ class DPGMM:
                 self.clusters[cluster_i].remove(i) # remove the data point from the cluster
                 self.stats[cluster_i]['n'] -= 1 # remove the sufficient statistics from the cluster parameters
                 self.stats[cluster_i]['s'] -= self.X[i]
-                self.stats[cluster_i]['ss'] -= torch.ger(self.X[i], self.X[i])
+                self.stats[cluster_i]['ss'] -= torch.outer(self.X[i], self.X[i])
                 if self.stats[cluster_i]['n'] == 0:
                     del self.clusters[cluster_i] # if the cluster data point i used to belong to is empty, we delete it
                     del self.stats[cluster_i]
                     del self.thetas[cluster_i]
+                cluster_changed.add(cluster_i)
 
                 # calculating the resampling probability of k(i)
                 # log_prob, the probability k(i) belongs to each cluster
@@ -144,18 +145,18 @@ class DPGMM:
                     self.stats[new_idx] = {
                         'n':  1,
                         's':  self.X[i],
-                        'ss': torch.ger(self.X[i], self.X[i])
+                        'ss': torch.outer(self.X[i], self.X[i])
                         }
-                    self.thetas[new_idx] = self._sample_cluster_parameter(new_idx)
                     self.labels[i] = torch.tensor(new_idx, device = self.device, dtype = torch.long)
+                    cluster_changed.add(new_idx)
                 else:
                     idx = cluster_idxs[choice]
                     self.clusters[idx].append(i)
                     self.stats[idx]['n'] += 1
                     self.stats[idx]['s'] += self.X[i]
-                    self.stats[idx]['ss'] += torch.ger(self.X[i], self.X[i])
-                    self.thetas[idx] = self._sample_cluster_parameter(idx)
-                    self.labels[i] = torch.tensor(idx, device = self.device, dtype = torch.long)            
+                    self.stats[idx]['ss'] += torch.outer(self.X[i], self.X[i])
+                    self.labels[i] = torch.tensor(idx, device = self.device, dtype = torch.long)
+                    cluster_changed.add(idx)          
 
             # resample cluster parameter for changed clusters
             for idx in cluster_changed:

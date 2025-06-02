@@ -219,7 +219,7 @@ class BIRCH:
         parent.children[parent_idx:parent_idx] = [left_child, right_child]
 
         if len(parent.entries) > parent.max_entries:
-            self._split_upward(parent)
+            self._node_split_upward(parent)
 
     def _parent_search(self, current: CFNode, target: CFNode, parent: CFNode = None) -> Tuple[CFNode, int]:
         if current is target:
@@ -245,7 +245,7 @@ class BIRCH:
             node = node.next_leaf
         return leaves
     
-    def global_clustering(self):
+    def global_clustering(self, n_clusters = None):
         # cluster all the centroids in each clustering with Kmeans
         # collect CFEntry of the leaf node
         leaf_entries = []
@@ -262,7 +262,7 @@ class BIRCH:
         weights   = np.array([entry.N for entry in leaf_entries])
 
         # Kmeans calculate the weight
-        km = KMeans(n_clusters = self.nclusters, n_init="auto", random_state = self.seed)
+        km = KMeans(n_clusters = n_clusters, n_init = 10, random_state = self.seed)
         km.fit(centroids, sample_weight = weights)
         labels = km.labels_
 
