@@ -254,7 +254,7 @@ class BIRCH:
 
         # save the labels
         out_dir = Path("outputs").parent
-        out_dir.mkdir(exist_ok = True, parent = True)
+        out_dir.mkdir(exist_ok = True, parents = True)
         labels_path = out_dir / "birch_labels.csv"
         np.savetxt(labels_path, np.column_stack([np.arange(len(labels)), labels]), fmt='%d', delimiter=',', header='index,label', comments='')
         print(f"BIRCH labels written to {labels_path}.\n")
