@@ -173,9 +173,9 @@ class DPGMM:
         # save the labels
         out_dir = Path("outputs")
         out_dir.mkdir(exist_ok = True)
-        labels_path = out_dir / "dpgmm_labels.csv"
+        labels_path = out_dir / "dpmm_labels.csv"
         np.savetxt(labels_path, np.column_stack([np.arange(len(self.labels)), self.labels.cpu().numpy()]), fmt='%d', delimiter=',', header='index,label', comments='')
-        print(f"DPGMM labels written to {labels_path}.\n")
+        print(f"DPMM labels written to {labels_path}.\n")
 
         #print the cluster summary
         cluster_sizes = {idx: len(value) for idx, value in self.clusters.items()}
