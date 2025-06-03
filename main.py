@@ -36,7 +36,7 @@ def main():
         pca = PCA(n_components = args.pcacomponents)
         X = pca.fit_transform(X)
         N, D = X.shape
-        model  = DPGMM(X, alpha = args.alpha, nu0 = D + 2, lambda0 = torch.eye(D) * 0.1, mu0 = torch.zeros(D), kappa0 = 0.01, device = args.device)
+        model  = DPGMM(X, alpha = args.alpha, nu0 = D + 2, lambda0 = np.eye(D) * 0.1, mu0 = np.zeros(D), kappa0 = 0.01, device = args.device)
         # nu_0 = D + 2 ensures that the expecation of covariance exists
         model.sample(iterations = args.iters)
     if args.model == "BIRCH":
