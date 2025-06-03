@@ -147,6 +147,7 @@ class DPGMM:
                         's':  self.X[i],
                         'ss': torch.outer(self.X[i], self.X[i])
                         }
+                    self.thetas[new_idx] = self._sample_cluster_parameter(new_idx)
                     self.labels[i] = torch.tensor(new_idx, device = self.device, dtype = torch.long)
                     cluster_changed.add(new_idx)
                 else:
