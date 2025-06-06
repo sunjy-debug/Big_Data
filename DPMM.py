@@ -1,9 +1,8 @@
+import numpy as np
 import torch
 from torch.distributions import Chi2, MultivariateNormal, StudentT
 import math
-from pathlib import Path
-import numpy as np
-
+from sklearn.metrics import silhouette_score, calinski_harabasz_score
 
 class DPGMM:
     def __init__(self, X, alpha, nu0, lambda0, mu0, kappa0, device):
@@ -179,3 +178,9 @@ class DPGMM:
         cluster_sizes = {idx: len(value) for idx, value in self.clusters.items()}
         for idx, size in sorted(cluster_sizes.items()):
             print(f"Cluster {idx}: {size} points")
+        
+        # evaluation
+        s_score = silhouette_score(self.X, self.labels.cpu().numpy(), metric='euclidean')
+        print(f"Silhouette Score: {s_score:.4f}")
+        ch_score = calinski_harabasz_score(self.X, self.labels.cpu().numpy())
+        print(f"Calinski-Harabasz Index: {ch_score:.4f}")

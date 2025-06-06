@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.cluster import KMeans
 from typing import Tuple
-from pathlib import Path
+from sklearn.metrics import silhouette_score, calinski_harabasz_score
 
 class CFEntry:
     # Clustering Feature Entries
@@ -290,3 +290,9 @@ class BIRCH:
         unique, counts = np.unique(labels, return_counts = True)
         for idx, size in zip(unique, counts):
             print(f"Cluster {idx}: {size} points")
+
+        # evaluation
+        s_score = silhouette_score(self.X, labels, metric='euclidean')
+        print(f"Silhouette Score: {s_score:.4f}")
+        ch_score = calinski_harabasz_score(self.X, labels)
+        print(f"Calinski-Harabasz Index: {ch_score:.4f}")
