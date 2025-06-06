@@ -171,10 +171,8 @@ class DPGMM:
             print(f"{itr + 1}-th iteration has completed.\n")
 
         # save the labels
-        out_dir = Path("outputs")
-        out_dir.mkdir(exist_ok = True)
-        labels_path = out_dir / "dpmm_labels.csv"
-        np.savetxt(labels_path, np.column_stack([np.arange(len(self.labels)), self.labels.cpu().numpy()]), fmt='%d', delimiter=',', header='index,label', comments='')
+        labels_path = "alg1_out.txt"
+        np.savetxt(labels_path, self.labels.cpu().numpy(), fmt='%d')
         print(f"DPMM labels written to {labels_path}.\n")
 
         #print the cluster summary

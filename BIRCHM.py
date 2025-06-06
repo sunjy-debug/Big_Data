@@ -282,10 +282,8 @@ class BIRCH:
             labels[i] = self.clusterlabel[id(leaf.entries[min_idx])] 
 
         # save the labels
-        out_dir = Path("outputs")
-        out_dir.mkdir(exist_ok = True, parents = True)
-        labels_path = out_dir / "birch_labels.csv"
-        np.savetxt(labels_path, np.column_stack([np.arange(len(labels)), labels]), fmt='%d', delimiter=',', header='index,label', comments='')
+        labels_path = "alg2_out.txt"
+        np.savetxt(labels_path, labels, fmt='%d')
         print(f"BIRCH labels written to {labels_path}.\n")
 
         #print the cluster summary
