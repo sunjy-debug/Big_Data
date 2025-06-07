@@ -18,10 +18,10 @@ def main():
     parser.add_argument("--alpha", type = float, default = 5.0, help = "DP concentration parameter, when alpha = 1.0, the expecation of number of cluster = lnN")
     parser.add_argument("--iters", type = int, default = 10, help="Number of Gibbs sampling iterations")
     parser.add_argument("--seed", type = int, default = 0, help = "Random seed")
-    parser.add_argument("--threshold", type = float, default= 20, help = "Radius Threshold for Clusters")
+    parser.add_argument("--threshold", type = float, default= 10, help = "Radius Threshold for Clusters")
     parser.add_argument("--B", type = int, default = 2000, help = "Node Threshold for Non-leaf Node")
     parser.add_argument("--L", type = int, default = 2000, help = "Node Threshold for Leaf Node")
-    parser.add_argument("--nclusters", type = int, default = 50, help = "Number of Clustering")
+    parser.add_argument("--nclusters", type = int, default = 5, help = "Number of Clustering")
     args = parser.parse_args()
 
     rng = np.random.RandomState(args.seed)
