@@ -180,7 +180,7 @@ class DPGMM:
             print(f"Cluster {idx}: {size} points")
         
         # evaluation
-        s_score = silhouette_score(self.X, self.labels.cpu().numpy(), metric='euclidean')
+        s_score = silhouette_score(self.X.cpu().numpy(), self.labels.cpu().numpy(), metric='euclidean')
         print(f"Silhouette Score: {s_score:.4f}")
-        ch_score = calinski_harabasz_score(self.X, self.labels.cpu().numpy())
+        ch_score = calinski_harabasz_score(self.X.cpu().numpy(), self.labels.cpu().numpy())
         print(f"Calinski-Harabasz Index: {ch_score:.4f}")
