@@ -292,7 +292,7 @@ class BIRCH:
             print(f"Cluster {idx}: {size} points")
 
         # evaluation
-        s_score = silhouette_score(self.X, labels, metric='euclidean')
+        s_score = silhouette_score(data, labels, metric='euclidean')
         print(f"Silhouette Score: {s_score:.4f}")
-        ch_score = calinski_harabasz_score(self.X, labels)
+        ch_score = calinski_harabasz_score(data, labels)
         print(f"Calinski-Harabasz Index: {ch_score:.4f}")
